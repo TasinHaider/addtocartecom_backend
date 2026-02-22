@@ -46,7 +46,7 @@ const DeleteProductController = async (req, res) => {
         if (!findproduct) {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
-        
+
         //delete productImage from backend
         findproduct.image.forEach(async (url) => {
             let imageurl = url.split('/')
@@ -66,6 +66,22 @@ const DeleteProductController = async (req, res) => {
     }
 }
 
+//get single product
+const SingleProductController = async (req, res) => {
+    try {
+        const { slug } = req.params;
+        const product = await productModel.findOne({ slug });
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        return res.status(200).json({ success: true, data: product });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: error.message });
+    }
+}
+
 //get all product
 const AllProductController = async (req, res) => {
     try {
@@ -81,4 +97,4 @@ const AllProductController = async (req, res) => {
     }
 }
 
-module.exports = { CreateProductController, DeleteProductController, AllProductController };
+module.exports = { CreateProductController, DeleteProductController, SingleProductController, AllProductController };
