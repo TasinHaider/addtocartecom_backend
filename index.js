@@ -1,25 +1,28 @@
 require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
-const path = require('path'); // Standard practice
+const path = require('path');
 const app = express();
-const port = process.env.PORT || 3000; // Use Env variable
 const dbConnection = require('./src/config/dbConnection');
 const router = require('./src/route/index');
 
 app.use(cors());
 app.use(express.json());
 
-// 1. Correct Static Path with Prefix
+// Uploads won't persist on Vercel — consider Cloudinary/S3 for production
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 2. Routes
 app.use(router);
 
+// Connect to DB
 dbConnection();
 
-app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-});
+// Only listen locally — Vercel handles this itself in production
+if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+}
 
 module.exports = app;
