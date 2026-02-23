@@ -1,5 +1,6 @@
 const UserModel = require("../model/userSchema");
 const emailOTP = require("../utils/emailOTP");
+const emailVerify = require("../utils/emailVerify");
 const sendEmail = require("../utils/sendEmail");
 const bcrypt = require('bcrypt');
 
@@ -11,34 +12,36 @@ const SignUpController = async (req, res) => {
         return res.status(400).json({ success: false, message: 'All fields are required.' })
     }
 
+    if (emailVerify(email) === false) {
+        return res.status(400).json({ success: false, message: 'Invalid Email Address.' })
+    }
+
     let emailExist = await UserModel.findOne({ email })
     if (emailExist) {
-        return res.status(500).json({ success: false, message: 'Email already exists.' })
-    } else {
-        let otp = emailOTP()
-
-        bcrypt.hash(password, 10, async function (err, hash) {
-            let user = new UserModel({
-                name,
-                email,
-                password: hash,
-                otp
+        //email exists but not verified
+        if (emailExist.verify === false) {
+            return res.status(200).json({
+                success: false,
+                isUnverified: true,
+                message: 'Account not verified. Please verify your email.'
             })
-            await user.save()
-                .then(() => {
-                    sendEmail(email, otp)
-
-                    let info = {
-                        name: user.name,
-                        email: user.email,
-                    }
-                    return res.status(200).json({ success: true, message: 'User Created Successfully.', data: info })
-                })
-                .catch((err) => {
-                    return res.status(500).json({ success: false, message: err.message })
-                })
-        })
+        }
+        return res.status(400).json({ success: false, message: 'Email already exists.' })
     }
+
+    //create account
+    let otp = emailOTP()
+    bcrypt.hash(password, 10, async function (err, hash) {
+        let user = new UserModel({ name, email, password: hash, otp })
+        await user.save()
+            .then(() => {
+                sendEmail(email, otp)
+                return res.status(200).json({ success: true, message: 'User Created Successfully.', data: { name: user.name, email: user.email } })
+            })
+            .catch((err) => {
+                return res.status(500).json({ success: false, message: err.message })
+            })
+    })
 }
 
 //otp verify
@@ -76,6 +79,10 @@ const LoginController = async (req, res) => {
 
     let user = await UserModel.findOne({ email })
 
+    if (!user) {
+        return res.status(404).json({ success: false, message: 'Incorrect email.' })
+    }
+
     if (user.verify === false) {
         return res.status(403).json({
             success: false,
@@ -84,18 +91,13 @@ const LoginController = async (req, res) => {
         });
     }
 
-    if (!user) {
-        return res.status(404).json({ success: false, message: 'incorrect email.' })
-    } else {
-        // Load hash from your password DB.
-        bcrypt.compare(password, user.password, function (err, result) {
-            if (result == true) {
-                return res.status(200).json({ success: true, message: 'login successfull.', data: user })
-            } else {
-                return res.status(404).json({ success: false, message: 'incorrect password.' })
-            }
-        });
-    }
+    bcrypt.compare(password, user.password, function (err, result) {
+        if (result == true) {
+            return res.status(200).json({ success: true, message: 'Login successful.', data: user })
+        } else {
+            return res.status(404).json({ success: false, message: 'Incorrect password.' })
+        }
+    });
 }
 
 //get all users
