@@ -80,7 +80,7 @@ const LoginController = async (req, res) => {
         return res.status(403).json({
             success: false,
             message: 'Account not verified. Please verify your email first.',
-            isUnverified: true // Helpful hint for frontend to redirect to OTP page
+            isUnverified: true
         });
     }
 
