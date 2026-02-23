@@ -8,7 +8,7 @@ const router = require('./src/route/index');
 // CORS configuration
 const allowedOrigins = [
     'http://localhost:5173',
-    'https://your-frontend.vercel.app'
+    'https://addtocartecom.vercel.app/',
 ]
 app.use(cors({
     origin: function (origin, callback) {
