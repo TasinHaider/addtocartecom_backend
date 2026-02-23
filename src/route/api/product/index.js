@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { CreateProductController, DeleteProductController, SingleProductController, AllProductController } = require('../../../controller/productController')
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' })
+const upload = require('../../../utils/multerUpload')
 
 //product routes
 router.post('/createproduct', upload.array('images', 5), CreateProductController)

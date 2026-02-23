@@ -1,7 +1,13 @@
 let slugify = require('slugify')
 const productModel = require('../model/productSchema')
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+})
 
 //create product
 const CreateProductController = async (req, res) => {
@@ -19,9 +25,9 @@ const CreateProductController = async (req, res) => {
             trim: true
         });
 
-        const imageFiles = req.files.map((item) => {
-            return `${process.env.SERVER_URL}/uploads/${item.filename}`;
-        });
+        // ✅ CHANGED: Cloudinary already gives you the full URL via item.path
+        // No need to manually construct it with SERVER_URL anymore
+        const imageFiles = req.files.map((item) => item.path);
 
         const product = new productModel({
             title,
@@ -37,7 +43,6 @@ const CreateProductController = async (req, res) => {
     }
 };
 
-//delete product
 const DeleteProductController = async (req, res) => {
     try {
         let { id } = req.params
@@ -47,21 +52,19 @@ const DeleteProductController = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Product not found' });
         }
 
-        //delete productImage from backend
-        findproduct.image.forEach(async (url) => {
-            let imageurl = url.split('/')
-            let filepath = path.join(__dirname, '../../uploads')
-            fs.unlink(`${filepath}/${imageurl[imageurl.length - 1]}`, (err) => {
-                if (err) {
-                    return res.status(404).json({ success: false, message: err.message })
-                }
-            })
+        const deletePromises = findproduct.image.map((url) => {
+            const parts = url.split('/')
+            const filenameWithExt = parts[parts.length - 1]
+            const publicId = `uploads/${filenameWithExt.split('.')[0]}`
+            console.log('Deleting publicId:', publicId)
+            return cloudinary.uploader.destroy(publicId)
         })
+        await Promise.all(deletePromises)
 
-        //delete from db
         await productModel.findByIdAndDelete(id)
         return res.status(200).json({ success: true, message: 'product deleted successfully.' })
     } catch (error) {
+        console.log('Delete error:', error)
         return res.status(500).json({ success: false, message: error.message })
     }
 }
