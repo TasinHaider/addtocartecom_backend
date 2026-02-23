@@ -5,7 +5,22 @@ const app = express();
 const dbConnection = require('./src/config/dbConnection');
 const router = require('./src/route/index');
 
-app.use(cors());
+const allowedOrigins = [
+    'http://localhost:5173',    
+    'https://your-frontend.vercel.app'
+]
+
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true)
+        } else {
+            callback(new Error('Not allowed by CORS'))
+        }
+    },
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(router);
 
