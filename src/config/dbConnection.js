@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const dbConnection = () => {
-    const uri = `mongodb+srv://${process.env.DB_NAME}:${process.env.DB_PASS}@pos.qpbydsd.mongodb.net/?appName=POS`;
+    const uri = `mongodb+srv://${process.env.DB_NAME}:${process.env.DB_PASS}@pos.qpbydsd.mongodb.net/yourDatabaseName?appName=POS`;
 
     mongoose.connect(uri)
         .then(() => {
