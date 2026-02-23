@@ -5,11 +5,11 @@ const app = express();
 const dbConnection = require('./src/config/dbConnection');
 const router = require('./src/route/index');
 
+// CORS configuration
 const allowedOrigins = [
-    'http://localhost:5173',    
+    'http://localhost:5173',
     'https://your-frontend.vercel.app'
 ]
-
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -32,5 +32,10 @@ if (process.env.NODE_ENV !== 'production') {
         console.log(`Server is running on port ${port}`);
     });
 }
+
+//server status check
+app.get('/', (req, res) => {
+    res.json({ message: 'Server is running ✅' })
+})
 
 module.exports = app;
