@@ -16,33 +16,35 @@ const SignUpController = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Invalid Email Address.' })
     }
 
-    let emailExist = await UserModel.findOne({ email })
-    if (emailExist) {
-        //email exists but not verified
-        if (emailExist.verify === false) {
-            return res.status(200).json({
-                success: false,
-                isUnverified: true,
-                message: 'Account not verified. Please verify your email.'
-            })
+    try {
+        let emailExist = await UserModel.findOne({ email })
+        if (emailExist) {
+            if (emailExist.verify === false) {
+                return res.status(200).json({
+                    success: false,
+                    isUnverified: true,
+                    message: 'Account not verified. Please verify your email.'
+                })
+            }
+            return res.status(400).json({ success: false, message: 'Email already exists.' })
         }
-        return res.status(400).json({ success: false, message: 'Email already exists.' })
-    }
 
-    //create account
-    let otp = emailOTP()
-    bcrypt.hash(password, 10, async function (err, hash) {
+        let otp = emailOTP()
+        const hash = await bcrypt.hash(password, 10) 
         let user = new UserModel({ name, email, password: hash, otp })
         await user.save()
-            .then(() => {
-                sendEmail(email, otp)
-                    .catch(err => console.error('Email failed:', err.message))
-                return res.status(200).json({ success: true, message: 'User Created Successfully.', data: { name: user.name, email: user.email } })
-            })
-            .catch((err) => {
-                return res.status(500).json({ success: false, message: err.message })
-            })
-    })
+
+        try {
+            await sendEmail(email, otp) 
+        } catch (emailErr) {
+            console.error('Email failed:', emailErr.message)
+        }
+
+        return res.status(200).json({ success: true, message: 'User Created Successfully.', data: { name: user.name, email: user.email } })
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message })
+    }
 }
 
 //otp verify
@@ -78,27 +80,31 @@ const LoginController = async (req, res) => {
         return res.status(400).json({ success: false, message: 'All fields are required.' })
     }
 
-    let user = await UserModel.findOne({ email })
+    try {
+        let user = await UserModel.findOne({ email })
 
-    if (!user) {
-        return res.status(404).json({ success: false, message: 'Incorrect email.' })
-    }
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'Incorrect email.' })
+        }
 
-    if (user.verify === false) {
-        return res.status(403).json({
-            success: false,
-            message: 'Account not verified. Please verify your email first.',
-            isUnverified: true
-        });
-    }
+        if (user.verify === false) {
+            return res.status(403).json({
+                success: false,
+                message: 'Account not verified. Please verify your email first.',
+                isUnverified: true
+            });
+        }
 
-    bcrypt.compare(password, user.password, function (err, result) {
-        if (result == true) {
+        const result = await bcrypt.compare(password, user.password)
+        if (result) {
             return res.status(200).json({ success: true, message: 'Login successful.', data: user })
         } else {
-            return res.status(404).json({ success: false, message: 'Incorrect password.' })
+            return res.status(400).json({ success: false, message: 'Incorrect password.' })
         }
-    });
+
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message })
+    }
 }
 
 //get all users
