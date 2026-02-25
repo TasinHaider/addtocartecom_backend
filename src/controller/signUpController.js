@@ -36,6 +36,7 @@ const SignUpController = async (req, res) => {
         await user.save()
             .then(() => {
                 sendEmail(email, otp)
+                    .catch(err => console.error('Email failed:', err.message))
                 return res.status(200).json({ success: true, message: 'User Created Successfully.', data: { name: user.name, email: user.email } })
             })
             .catch((err) => {
