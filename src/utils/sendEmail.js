@@ -9,6 +9,7 @@ const sendEmail = async (email, otp) => {
         },
     });
 
+    //email info
     const info = await transporter.sendMail({
         from: process.env.AUTH_EMAIL,
         to: email,
